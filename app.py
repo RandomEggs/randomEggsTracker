@@ -54,18 +54,26 @@ def ensure_admin_user() -> None:
 def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR / 'productivity.db'}"
+
+    primary_db_url = os.environ.get(
+        "DATABASE_URL", f"sqlite:///{BASE_DIR / 'productivity.db'}"
+    )
+    auth_db_url = os.environ.get("AUTH_DATABASE_URL", primary_db_url)
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = primary_db_url
     app.config["SQLALCHEMY_BINDS"] = {
-        "auth": f"sqlite:///{BASE_DIR / 'auth.db'}",
+        "auth": auth_db_url,
     }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
 
-    with app.app_context():
-        db.create_all()
-        db.create_all(bind_key="auth")
-        ensure_admin_user()
+    auto_init = os.environ.get("INIT_DB_ON_STARTUP", "true").lower() == "true"
+    if auto_init:
+        with app.app_context():
+            db.create_all()
+            db.create_all(bind_key="auth")
+            ensure_admin_user()
 
     register_routes(app)
     return app
