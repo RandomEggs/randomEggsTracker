@@ -158,7 +158,7 @@
               <li class="flex items-center justify-between p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
                 <div class="flex flex-col">
                   <span class="font-semibold">{{ task.title }}</span>
-                  <span class="text-xs text-slate-400">{{ task.created_at }}</span>
+                  <span class="text-xs text-slate-400">{{ task.created_at_ist or task.created_at }}</span>
                 </div>
                 <div class="flex gap-2 items-center">
                   <select data-task-id="{{ task.id }}" class="task-status text-sm bg-slate-900 border border-slate-700 rounded px-2 py-1">

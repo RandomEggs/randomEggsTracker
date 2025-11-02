@@ -36,10 +36,11 @@ function renderTasks(tasks) {
   tasks.forEach(task => {
     const li = document.createElement('li');
     li.classList.add('flex', 'items-center', 'justify-between', 'p-3', 'rounded-lg', 'bg-slate-800/60', 'border', 'border-slate-700/60');
+    const createdLabel = task.created_at_ist || new Date(task.created_at).toLocaleString();
     li.innerHTML = `
       <div class="flex flex-col">
         <span class="font-semibold">${task.title}</span>
-        <span class="text-xs text-slate-400">${new Date(task.created_at).toLocaleString()}</span>
+        <span class="text-xs text-slate-400">${createdLabel}</span>
       </div>
       <div class="flex gap-2 items-center">
         <select data-task-id="${task.id}" class="task-status text-sm bg-slate-900 border border-slate-700 rounded px-2 py-1">

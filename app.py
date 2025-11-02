@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time
 from pathlib import Path
 from typing import List
 
@@ -289,6 +289,7 @@ def register_routes(app: Flask) -> None:
         return render_template(
             "profile.html",
             user=g.user,
+            joined_at_ist=to_ist_string(g.user.created_at),
             total_tasks=total_tasks,
             completed_tasks=completed_tasks,
             total_sessions=total_sessions,
@@ -516,18 +517,18 @@ def register_routes(app: Flask) -> None:
 
 
 def get_recent_stats(user_id: int | None = None, days: int = 7) -> List[dict]:
-    window_start = datetime.now(timezone.utc).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    ) - timedelta(
+    tz_now = datetime.now(timezone.utc).astimezone(IST)
+    window_start = tz_now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(
         days=days - 1
     )
+    window_start_utc = window_start.astimezone(timezone.utc)
     query = (
         db.session.query(
             func.date(PomodoroSession.start_time).label("date"),
             func.count(PomodoroSession.id).label("sessions"),
             func.sum(PomodoroSession.duration).label("total_duration"),
         )
-        .filter(PomodoroSession.start_time >= window_start)
+        .filter(PomodoroSession.start_time >= window_start_utc)
         .filter(PomodoroSession.duration.isnot(None))
     )
     if user_id is not None:
@@ -539,9 +540,18 @@ def get_recent_stats(user_id: int | None = None, days: int = 7) -> List[dict]:
     )
     stats = []
     for row in rows:
+        raw_date = row.date
+        if isinstance(raw_date, datetime):
+            dt_utc = raw_date if raw_date.tzinfo else raw_date.replace(tzinfo=timezone.utc)
+        elif isinstance(raw_date, str):
+            dt_utc = datetime.strptime(raw_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        else:
+            dt_utc = datetime.combine(raw_date, time(), tzinfo=timezone.utc)
+        ist_date = to_ist_datetime(dt_utc)
+        date_label = ist_date.strftime("%d %b") if ist_date else str(raw_date)
         stats.append(
             {
-                "date": row.date.isoformat() if hasattr(row.date, "isoformat") else str(row.date),
+                "date": date_label,
                 "sessions": row.sessions or 0,
                 "total_duration": int(row.total_duration or 0),
             }

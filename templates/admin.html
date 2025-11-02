@@ -73,9 +73,9 @@
       const activeButtonClasses = 'border-indigo-500 bg-indigo-500/10 text-indigo-100';
       const inactiveButtonClasses = 'border-slate-800 text-slate-300 hover:border-indigo-500/50 hover:text-indigo-100';
 
-      function formatDate(value) {
-        if (!value) return 'Never';
-        return new Date(value).toLocaleString();
+      function formatDate(value, fallback) {
+        if (!value) return fallback || 'Never';
+        return value;
       }
 
       function renderDetails(details) {
@@ -125,9 +125,9 @@
         }
 
         userRole.textContent = member.email ? 'Member' : '';
-        const lastLogin = formatDate(member.last_login_at);
-        const lastActive = formatDate(member.last_active_at);
-        const createdAt = formatDate(member.created_at);
+        const lastLogin = formatDate(member.last_login_at_ist, formatDate(member.last_login_at));
+        const lastActive = formatDate(member.last_active_at_ist, formatDate(member.last_active_at));
+        const createdAt = formatDate(member.created_at_ist, formatDate(member.created_at));
 
         userInfo.innerHTML = `
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -181,7 +181,7 @@
           logs.forEach(item => {
             const li = document.createElement('li');
             li.className = 'bg-slate-900/60 border border-slate-800 rounded-lg px-4 py-3';
-            const timestamp = formatDate(item.created_at);
+            const timestamp = formatDate(item.created_at_ist, formatDate(item.created_at));
             li.innerHTML = `
               <div class="flex items-center justify-between">
                 <span class="font-semibold text-indigo-300">${item.description || item.action}</span>

@@ -12,7 +12,7 @@
       <header class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold">{{ user.username }}</h1>
-          <p class="text-slate-400">Member since {{ user.created_at.strftime('%B %d, %Y') }}</p>
+          <p class="text-slate-400">Member since {{ joined_at_ist }}</p>
         </div>
         <a href="{{ url_for('dashboard') }}" class="btn btn-neutral">Back to dashboard</a>
       </header>
