@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Completed Tasks · Productivity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                950: '#020617'
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body class="bg-slate-950 text-slate-200">
+    <div class="min-h-screen p-6">
+      <header class="max-w-5xl mx-auto mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 class="text-3xl font-bold">Completed Tasks</h1>
+            <p class="text-slate-400 text-sm">
+              Review everything you've finished to celebrate progress and spot trends.
+            </p>
+          </div>
+          <div class="flex gap-3">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-neutral text-sm px-4 py-2">Back to dashboard</a>
+            <form method="post" action="{{ url_for('logout') }}">
+              <button type="submit" class="btn btn-danger text-sm px-4 py-2">Sign out</button>
+            </form>
+          </div>
+        </div>
+      </header>
+
+      <main class="max-w-5xl mx-auto space-y-6">
+        <section class="card p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-semibold">Finished work</h2>
+              <p class="text-xs text-slate-500">Browse your accomplishments month by month.</p>
+            </div>
+            <div class="text-xs text-slate-400">
+              {{ grouped_tasks.total_completed }} task{{ '' if grouped_tasks.total_completed == 1 else 's' }} completed overall
+            </div>
+          </div>
+
+          {% if grouped_tasks.months %}
+            <div class="space-y-4">
+              {% for month in grouped_tasks.months %}
+                <details class="bg-slate-900/70 border border-slate-800 rounded-xl overflow-hidden" {% if loop.first %}open{% endif %}>
+                  <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-sm font-semibold text-slate-100">
+                    <span>{{ month.month_label }}</span>
+                    <span class="text-xs text-slate-400">{{ month.total_tasks }} task{{ '' if month.total_tasks == 1 else 's' }}</span>
+                  </summary>
+                  <div class="space-y-3 px-4 pb-4">
+                    {% for day in month.days %}
+                      <details class="bg-slate-900/80 border border-slate-800 rounded-lg" {% if loop.first %}open{% endif %}>
+                        <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-sm text-slate-200">
+                          <span>{{ day.date_label }}</span>
+                          <span class="text-xs text-slate-500">{{ day.tasks_count }} item{{ '' if day.tasks_count == 1 else 's' }}</span>
+                        </summary>
+                        <ul class="divide-y divide-slate-800">
+                          {% for task in day.tasks %}
+                            <li class="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                              <div>
+                                <p class="font-semibold text-slate-100">{{ task.title }}</p>
+                                <p class="text-xs text-slate-500">Completed at {{ task.time_label }} IST</p>
+                              </div>
+                              <span class="inline-flex items-center gap-2 text-xs text-emerald-400">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                Done
+                              </span>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      </details>
+                    {% endfor %}
+                  </div>
+                </details>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-sm text-slate-500">
+              No tasks marked as done yet. Finish one from the dashboard to see it here.
+            </p>
+          {% endif %}
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

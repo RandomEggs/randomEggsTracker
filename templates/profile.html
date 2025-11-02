@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile · Productivity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body class="bg-slate-950 text-slate-200 min-h-screen">
+    <div class="max-w-4xl mx-auto py-12 px-6 space-y-10">
+      <header class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold">{{ user.username }}</h1>
+          <p class="text-slate-400">Member since {{ user.created_at.strftime('%B %d, %Y') }}</p>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-neutral">Back to dashboard</a>
+      </header>
+
+      <section class="grid gap-6 md:grid-cols-2">
+        <div class="card p-6 space-y-2">
+          <h2 class="text-xl font-semibold">Account details</h2>
+          <p class="text-sm text-slate-400">Email</p>
+          <p class="font-medium">{{ user.email }}</p>
+        </div>
+        <div class="card p-6 space-y-2">
+          <h2 class="text-xl font-semibold">Focus summary</h2>
+          <div class="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <p class="text-3xl font-bold">{{ total_tasks }}</p>
+              <p class="text-sm text-slate-400">Total tasks</p>
+            </div>
+            <div>
+              <p class="text-3xl font-bold">{{ completed_tasks }}</p>
+              <p class="text-sm text-slate-400">Completed tasks</p>
+            </div>
+            <div>
+              <p class="text-3xl font-bold">{{ total_sessions }}</p>
+              <p class="text-sm text-slate-400">Pomodoro sessions</p>
+            </div>
+            <div>
+              <p class="text-3xl font-bold">{{ total_focus_minutes }}</p>
+              <p class="text-sm text-slate-400">Focus minutes</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

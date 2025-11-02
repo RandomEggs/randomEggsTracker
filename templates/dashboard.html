@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Productivity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                950: '#020617'
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body class="bg-slate-950 text-slate-200">
+    <div class="min-h-screen p-6">
+      <header class="max-w-6xl mx-auto mb-10">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <h1 class="text-4xl font-bold mb-2">Focus Command Hub</h1>
+            <p class="text-slate-400">
+              Stay on top of your tasks and keep your focus sessions consistent.
+            </p>
+          </div>
+          <div class="flex flex-col gap-4 md:items-end">
+            {% if user %}
+              <div class="flex items-center gap-3 bg-slate-900/70 border border-slate-800 rounded-full px-4 py-2">
+                <div class="text-sm text-left">
+                  <p class="font-semibold text-slate-200">{{ user.username }}</p>
+                  <p class="text-xs text-slate-500">{{ user.email }}</p>
+                </div>
+                <a href="{{ url_for('profile') }}" class="btn btn-neutral text-sm px-3 py-1">Profile</a>
+                <form method="post" action="{{ url_for('logout') }}">
+                  <button type="submit" class="btn btn-danger text-sm px-3 py-1">Logout</button>
+                </form>
+              </div>
+            {% endif %}
+            <div class="flex gap-4 items-center">
+              <div>
+                <label for="work-duration" class="block text-sm text-slate-400">Focus (minutes)</label>
+                <input
+                  type="number"
+                  id="work-duration"
+                  min="1"
+                  value="{{ work_duration_minutes }}"
+                  class="bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label for="break-duration" class="block text-sm text-slate-400">Break (minutes)</label>
+                <input
+                  type="number"
+                  id="break-duration"
+                  min="1"
+                  value="{{ break_duration_minutes }}"
+                  class="bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="max-w-6xl mx-auto grid gap-6 lg:grid-cols-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="lg:col-span-3 space-y-2">
+              {% for category, message in messages %}
+                <div class="p-3 rounded-lg border {{ 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200' if category == 'success' else 'border-rose-500/60 bg-rose-500/10 text-rose-200' if category == 'error' else 'border-slate-500/60 bg-slate-500/10 text-slate-200' }}">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        <section class="lg:col-span-2 card p-6">
+          <div class="flex flex-col lg:flex-row gap-8 items-center">
+            <div class="relative">
+              <svg width="150" height="150" class="progress-ring">
+                <circle
+                  id="progress-circle"
+                  cx="75"
+                  cy="75"
+                  r="54"
+                  stroke="url(#gradient)"
+                  stroke-linecap="round"
+                ></circle>
+                <defs>
+                  <linearGradient id="gradient" x1="0%" x2="100%" y1="0%" y2="0%">
+                    <stop offset="0%" stop-color="#6366f1" />
+                    <stop offset="100%" stop-color="#a855f7" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                <span id="timer-display" class="text-4xl font-bold">25:00</span>
+                <span id="timer-phase" class="text-sm uppercase tracking-widest text-slate-400">Focus</span>
+                <span id="progress-text" class="text-xs text-slate-500">0%</span>
+              </div>
+            </div>
+            <div class="flex-1 space-y-4">
+              <div>
+                <label for="active-task" class="block text-sm text-slate-400 mb-1">Active task</label>
+                <select id="active-task" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2">
+                  <option value="">No task selected</option>
+                  {% for task in tasks %}
+                    <option value="{{ task.id }}">{{ task.title }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="flex gap-3">
+                <button id="start-btn" class="btn btn-primary flex-1">Start</button>
+                <button id="pause-btn" class="btn bg-slate-800 border border-slate-700 flex-1">Pause</button>
+                <button id="reset-btn" class="btn bg-slate-800 border border-slate-700 flex-1">Reset</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-xl font-semibold">Task Planner</h2>
+              <span class="text-xs text-slate-500">Today's tasks</span>
+            </div>
+            <a
+              href="{{ url_for('completed_tasks_page') }}"
+              class="btn btn-neutral text-xs px-3 py-2 self-start sm:self-auto"
+            >
+              View completed tasks
+            </a>
+          </div>
+          <form id="task-form" class="space-y-4 mb-6">
+            <div>
+              <label class="block text-sm text-slate-400 mb-1" for="title">Task title</label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                required
+                class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                placeholder="What do you need to accomplish?"
+              />
+            </div>
+            <button type="submit" class="btn btn-primary w-full">Add task</button>
+          </form>
+          <ul id="task-list" class="space-y-3">
+            {% for task in tasks %}
+              <li class="flex items-center justify-between p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                <div class="flex flex-col">
+                  <span class="font-semibold">{{ task.title }}</span>
+                  <span class="text-xs text-slate-400">{{ task.created_at }}</span>
+                </div>
+                <div class="flex gap-2 items-center">
+                  <select data-task-id="{{ task.id }}" class="task-status text-sm bg-slate-900 border border-slate-700 rounded px-2 py-1">
+                    <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="done" {% if task.status == 'done' %}selected{% endif %}>Done</option>
+                  </select>
+                  <button data-task-id="{{ task.id }}" class="delete-task btn btn-primary bg-rose-500 hover:bg-rose-600 py-1 px-3 text-sm">Delete</button>
+                </div>
+              </li>
+            {% else %}
+              <li class="text-sm text-slate-500">No tasks for today yet. Add one above to get started.</li>
+            {% endfor %}
+          </ul>
+        </section>
+
+        <section class="lg:col-span-3 card p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold">Daily Focus Stats</h2>
+            <button onclick="refreshStats()" class="text-sm text-slate-400 hover:text-slate-200">Refresh</button>
+          </div>
+          <canvas id="stats-chart" height="120"></canvas>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  </body>
+</html>

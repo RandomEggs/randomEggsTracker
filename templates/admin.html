@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel · Focus Command Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body class="bg-slate-950 text-slate-200 min-h-screen">
+    <div class="max-w-6xl mx-auto py-12 px-6 space-y-10">
+      <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold">Command Center</h1>
+          <p class="text-slate-400 text-sm">Monitoring workspace activity in real time.</p>
+        </div>
+        <div class="flex gap-3 items-center">
+          <a href="{{ url_for('dashboard') }}" class="btn btn-neutral text-sm px-4 py-2">User dashboard</a>
+          <form method="post" action="{{ url_for('logout') }}">
+            <button type="submit" class="btn btn-danger text-sm px-4 py-2">Sign out</button>
+          </form>
+        </div>
+      </header>
+
+      <section class="grid gap-6 lg:grid-cols-4">
+        <aside class="card p-6 space-y-4 lg:col-span-1">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold">Members</h2>
+            <button id="refresh-summary" class="text-sm text-slate-400 hover:text-slate-200">Refresh</button>
+          </div>
+          <div id="user-list" class="space-y-2 max-h-[540px] overflow-y-auto pr-1">
+            <p class="text-sm text-slate-500">Loading members…</p>
+          </div>
+        </aside>
+
+        <div class="lg:col-span-3 space-y-6">
+          <article class="card p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h2 class="text-xl font-semibold">Account details</h2>
+                <p class="text-sm text-slate-400">Select a member to view their workspace status.</p>
+              </div>
+              <span id="user-role" class="text-xs uppercase tracking-wide text-slate-500"></span>
+            </div>
+            <div id="user-info" class="text-sm text-slate-300">
+              <p class="text-sm text-slate-500">No member selected.</p>
+            </div>
+          </article>
+
+          <article class="card p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xl font-semibold">Activity feed</h2>
+              <button id="refresh-activity" class="text-sm text-slate-400 hover:text-slate-200">Refresh</button>
+            </div>
+            <ul id="activity-feed" class="space-y-3 max-h-[480px] overflow-y-auto pr-2">
+              <li class="text-sm text-slate-500">Select a member to view recent activity.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const activityFeed = document.getElementById('activity-feed');
+      const userList = document.getElementById('user-list');
+      const userInfo = document.getElementById('user-info');
+      const userRole = document.getElementById('user-role');
+
+      let members = [];
+      let selectedUserId = null;
+
+      const baseButtonClasses = 'w-full text-left px-4 py-3 rounded-lg border transition-colors duration-150';
+      const activeButtonClasses = 'border-indigo-500 bg-indigo-500/10 text-indigo-100';
+      const inactiveButtonClasses = 'border-slate-800 text-slate-300 hover:border-indigo-500/50 hover:text-indigo-100';
+
+      function formatDate(value) {
+        if (!value) return 'Never';
+        return new Date(value).toLocaleString();
+      }
+
+      function renderDetails(details) {
+        if (!details || Object.keys(details).length === 0) {
+          return '';
+        }
+        const entries = Object.entries(details)
+          .map(([key, value]) => `<span class="px-2 py-1 bg-slate-900/80 border border-slate-800 rounded text-xs">${key}: ${value}</span>`)
+          .join(' ');
+        return `<div class="mt-2 flex flex-wrap gap-2">${entries}</div>`;
+      }
+
+      function renderUserList(activeId) {
+        if (!members.length) {
+          userList.innerHTML = '<p class="text-sm text-slate-500">No members yet.</p>';
+          return;
+        }
+
+        userList.innerHTML = '';
+        members.forEach(member => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.userId = member.id;
+          button.className = `${baseButtonClasses} ${member.id === activeId ? activeButtonClasses : inactiveButtonClasses}`;
+          button.innerHTML = `
+            <div class="font-semibold text-sm">${member.username}</div>
+            <div class="text-xs text-slate-500">${member.email || 'No email'}</div>
+          `;
+          button.addEventListener('click', () => selectUser(member.id));
+          userList.appendChild(button);
+        });
+      }
+
+      function updateButtonState() {
+        const buttons = userList.querySelectorAll('button[data-user-id]');
+        buttons.forEach(button => {
+          const isActive = Number(button.dataset.userId) === selectedUserId;
+          button.className = `${baseButtonClasses} ${isActive ? activeButtonClasses : inactiveButtonClasses}`;
+        });
+      }
+
+      function displayUserDetails(member) {
+        if (!member) {
+          userRole.textContent = '';
+          userInfo.innerHTML = '<p class="text-sm text-slate-500">No member selected.</p>';
+          return;
+        }
+
+        userRole.textContent = member.email ? 'Member' : '';
+        const lastLogin = formatDate(member.last_login_at);
+        const lastActive = formatDate(member.last_active_at);
+        const createdAt = formatDate(member.created_at);
+
+        userInfo.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p class="text-lg font-semibold text-slate-100">${member.username}</p>
+              <p class="text-sm text-slate-400">${member.email || 'No email on file'}</p>
+            </div>
+            <div class="text-xs text-slate-500">Joined ${createdAt}</div>
+          </div>
+          <dl class="grid gap-3 text-sm text-slate-300 sm:grid-cols-2">
+            <div class="flex justify-between bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2">
+              <dt class="text-slate-400">Last login</dt>
+              <dd>${lastLogin}</dd>
+            </div>
+            <div class="flex justify-between bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2">
+              <dt class="text-slate-400">Last active</dt>
+              <dd>${lastActive}</dd>
+            </div>
+            <div class="flex justify-between bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2">
+              <dt class="text-slate-400">Tasks</dt>
+              <dd>${member.total_tasks} (✓ ${member.completed_tasks})</dd>
+            </div>
+            <div class="flex justify-between bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2">
+              <dt class="text-slate-400">Pomodoro sessions</dt>
+              <dd>${member.total_sessions}</dd>
+            </div>
+            <div class="flex justify-between bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2">
+              <dt class="text-slate-400">Focus minutes</dt>
+              <dd>${member.total_focus_minutes}</dd>
+            </div>
+          </dl>
+        `;
+      }
+
+      async function loadActivity() {
+        if (!selectedUserId) {
+          activityFeed.innerHTML = '<li class="text-sm text-slate-500">Select a member to view recent activity.</li>';
+          return;
+        }
+
+        activityFeed.innerHTML = '<li class="text-sm text-slate-500">Updating…</li>';
+        try {
+          const response = await fetch(`/admin/activity?user_id=${selectedUserId}`);
+          if (!response.ok) throw new Error('Failed request');
+          const logs = await response.json();
+          if (!logs.length) {
+            activityFeed.innerHTML = '<li class="text-sm text-slate-500">No activity recorded yet.</li>';
+            return;
+          }
+          activityFeed.innerHTML = '';
+          logs.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'bg-slate-900/60 border border-slate-800 rounded-lg px-4 py-3';
+            const timestamp = formatDate(item.created_at);
+            li.innerHTML = `
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-indigo-300">${item.description || item.action}</span>
+                <span class="text-xs text-slate-500">${timestamp}</span>
+              </div>
+              ${renderDetails(item.details)}
+            `;
+            activityFeed.appendChild(li);
+          });
+        } catch (error) {
+          activityFeed.innerHTML = '<li class="text-sm text-rose-400">Unable to load activity.</li>';
+        }
+      }
+
+      function selectUser(userId, { fetchActivity = true } = {}) {
+        if (!userId) {
+          selectedUserId = null;
+          displayUserDetails(null);
+          activityFeed.innerHTML = '<li class="text-sm text-slate-500">Select a member to view recent activity.</li>';
+          updateButtonState();
+          return;
+        }
+        selectedUserId = Number(userId);
+        updateButtonState();
+        const member = members.find(entry => entry.id === selectedUserId);
+        displayUserDetails(member || null);
+        if (fetchActivity) {
+          loadActivity();
+        }
+      }
+
+      async function loadSummary({ preserveSelection = true, fetchActivity = true } = {}) {
+        try {
+          const response = await fetch('/admin/summary');
+          if (!response.ok) throw new Error('Failed request');
+          const data = await response.json();
+          members = data;
+
+          if (!members.length) {
+            selectedUserId = null;
+            userList.innerHTML = '<p class="text-sm text-slate-500">No members yet.</p>';
+            displayUserDetails(null);
+            activityFeed.innerHTML = '<li class="text-sm text-slate-500">Awaiting member activity.</li>';
+            return;
+          }
+
+          let targetId = preserveSelection && selectedUserId && members.some(entry => entry.id === selectedUserId)
+            ? selectedUserId
+            : members[0].id;
+
+          renderUserList(targetId);
+          selectUser(targetId, { fetchActivity });
+        } catch (error) {
+          if (!members.length) {
+            userList.innerHTML = '<p class="text-sm text-rose-400">Unable to load members.</p>';
+            displayUserDetails(null);
+            activityFeed.innerHTML = '<li class="text-sm text-rose-400">Activity unavailable.</li>';
+          }
+        }
+      }
+
+      function scheduleRefresh() {
+        loadSummary({ preserveSelection: false, fetchActivity: true });
+        setInterval(() => {
+          if (selectedUserId) {
+            loadActivity();
+          }
+        }, 20000);
+        setInterval(() => {
+          loadSummary({ preserveSelection: true, fetchActivity: false });
+        }, 45000);
+      }
+
+      document.getElementById('refresh-activity').addEventListener('click', () => {
+        loadActivity();
+      });
+
+      document.getElementById('refresh-summary').addEventListener('click', () => {
+        loadSummary({ preserveSelection: true, fetchActivity: true });
+      });
+
+      document.addEventListener('DOMContentLoaded', scheduleRefresh);
+    </script>
+  </body>
+</html>

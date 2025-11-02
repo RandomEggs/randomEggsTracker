@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Environment variables / credentials
+.env
+.env.*
+
+# SQLite databases
+*.db
+
+# Flask cache / instance data
+instance/
+*.log
+
+# IDE / editor junk
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Node / frontend build artifacts
+node_modules/
+dist/
+build/
+
+# Coverage / test artifacts
+.coverage
+htmlcov/
+pytest_cache/

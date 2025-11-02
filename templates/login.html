@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In · Productivity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body class="bg-slate-950 text-slate-200 min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md card p-8 space-y-6">
+      <div class="space-y-2 text-center">
+        <h1 class="text-3xl font-bold">Welcome back</h1>
+        <p class="text-slate-400">Sign in to keep your focus streak alive.</p>
+      </div>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="space-y-2">
+            {% for category, message in messages %}
+              <div class="p-3 rounded-lg border {{ 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200' if category == 'success' else 'border-rose-500/60 bg-rose-500/10 text-rose-200' if category == 'error' else 'border-slate-500/60 bg-slate-500/10 text-slate-200' }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <form method="post" class="space-y-5">
+        <div>
+          <label for="identifier" class="block text-sm text-slate-400 mb-1">Email or username</label>
+          <input
+            type="text"
+            id="identifier"
+            name="identifier"
+            required
+            autofocus
+            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+            placeholder="you@example.com or yourname"
+          />
+        </div>
+        <div>
+          <label for="password" class="block text-sm text-slate-400 mb-1">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+            placeholder="••••••••"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary w-full">Sign in</button>
+      </form>
+      <p class="text-center text-sm text-slate-400">
+        No account? <a class="text-indigo-400 hover:text-indigo-300" href="{{ url_for('signup') }}">Create one</a>.
+      </p>
+    </div>
+  </body>
+</html>
